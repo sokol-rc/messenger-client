@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
-import Handlebars from 'handlebars';
 import EventBus from './EventBus';
+// import Handlebars from 'handlebars';
+const Handlebars = require('handlebars');
 
 type Events = Values<typeof Block.EVENTS>;
 
@@ -9,6 +10,7 @@ export default class Block<P extends Record<string, any>> {
         INIT: 'init',
         FLOW_CDM: 'flow:component-did-mount',
         FLOW_CDU: 'flow:component-did-update',
+        FLOW_CWU: 'flow:component-will-unmount',
         FLOW_RENDER: 'flow:render',
     } as const;
 
@@ -41,9 +43,12 @@ export default class Block<P extends Record<string, any>> {
     _registerEvents(eventBus: EventBus<Events>) {
         eventBus.on(Block.EVENTS.INIT, this.init.bind(this));
         eventBus.on(Block.EVENTS.FLOW_CDU, this._componentDidUpdate.bind(this));
+        eventBus.on(
+            Block.EVENTS.FLOW_CWU,
+            this._componentWillUnmount.bind(this)
+        );
         eventBus.on(Block.EVENTS.FLOW_CDM, this._componentDidMount.bind(this));
-		eventBus.on(Block.EVENTS.FLOW_RENDER, this._render.bind(this));
-		
+        eventBus.on(Block.EVENTS.FLOW_RENDER, this._render.bind(this));
     }
 
     _createResources() {
@@ -55,9 +60,18 @@ export default class Block<P extends Record<string, any>> {
         this.eventBus().emit(Block.EVENTS.FLOW_RENDER, this.props);
     }
 
-    _componentDidMount(props: P) {
-        this.componentDidMount(props);
+    _componentDidMount() {
+        this._checkInDom();
+        this.componentDidMount();
     }
+
+    _componentWillUnmount() {
+        this.eventBus().destroy();
+        this.componentWillUnmount();
+    }
+
+    componentWillUnmount() {}
+
     componentDidMount() {}
 
     _componentDidUpdate() {
@@ -88,6 +102,17 @@ export default class Block<P extends Record<string, any>> {
         return this._element;
     }
 
+    _checkInDom() {
+        const elementInDOM = document.body.contains(this._element);
+
+        if (elementInDOM) {
+            setTimeout(() => this._checkInDom(), 1000);
+            return;
+        }
+
+        this.eventBus().emit(Block.EVENTS.FLOW_CWU, this.props);
+    }
+
     _render() {
         const fragment = this._compile();
 
@@ -97,19 +122,17 @@ export default class Block<P extends Record<string, any>> {
         this._element!.replaceWith(newElement);
 
         this._element = newElement as HTMLElement;
-		this._addEvents();
+        this._addEvents();
     }
 
     protected render(): string {
         return '';
     }
 
-	getContent(): HTMLElement {
-		
+    getContent(): HTMLElement {
         if (
             this.element?.parentNode?.nodeType === Node.DOCUMENT_FRAGMENT_NODE
-		) {
-
+        ) {
             setTimeout(() => {
                 if (
                     this.element?.parentNode?.nodeType !==
@@ -123,9 +146,9 @@ export default class Block<P extends Record<string, any>> {
         return this.element!;
     }
 
-    _makePropsProxy(props: any): any {
-		const self = this;
-		let waitProxy = false;
+    _makePropsProxy(props: P): P {
+        const self = this;
+        let waitProxy = false;
 
         return new Proxy(props as unknown as object, {
             get(target: Record<string, unknown>, prop: string) {
@@ -143,13 +166,9 @@ export default class Block<P extends Record<string, any>> {
                 if (!waitProxy) {
                     waitProxy = true;
                     setTimeout(() => {
-                        self.eventBus().emit(
-                            Block.EVENTS.FLOW_CDU,
-                            { ...target },
-                            target
-                        );
+                        self.eventBus().emit(Block.EVENTS.FLOW_CDU, target);
                         waitProxy = false;
-                    }, 10);
+                    }, 100);
                 }
 
                 return true;
@@ -165,7 +184,7 @@ export default class Block<P extends Record<string, any>> {
     }
 
     _removeEvents() {
-        const { events } = this.props as any;
+        const { events } = this.props as P;
 
         if (!events || !this._element) {
             return;
@@ -179,7 +198,7 @@ export default class Block<P extends Record<string, any>> {
     }
 
     _addEvents() {
-        const { events = {} } = this.props as any;
+        const { events = {} } = this.props as P;
 
         if (!events) {
             return;
@@ -224,11 +243,12 @@ export default class Block<P extends Record<string, any>> {
         return fragment.content;
     }
 
-    show() {
-        this.getContent().style.display = 'flex';
-    }
-
     hide() {
-        this.getContent().style.display = 'none';
+        if (this._element) {
+            this.eventBus().emit(Block.EVENTS.FLOW_CWU);
+            this._element.remove();
+        }
     }
 }
+
+export type Component = typeof Block;

@@ -2,6 +2,7 @@ import Block from 'core/Block';
 import getFormValues from 'utils/formTools';
 import { inputValidate } from 'utils/validate/validate';
 import Patterns from 'utils/validate/validate-pattenrs';
+import { ValidationHandlers } from 'utils/validate/validateTypes';
 
 import '../login/login.css';
 import './registration.css';
@@ -17,8 +18,6 @@ export type RegistrationData = {
 
 type Props = {
     onSubmit: (event: SubmitEvent) => void;
-    validateOnBlur: (input: ValidateInput) => void;
-    validateOnFocus: (input: ValidateInput) => void;
     doRegistrtation: (registrationData: RegistrationData) => void;
     personNamePattern: RegExp;
     loginPattern: RegExp;
@@ -26,7 +25,8 @@ type Props = {
     phonePattern: RegExp;
     passwordPattern: RegExp;
     registrationFormError: string;
-};
+    isLoading: boolean;
+} & ValidationHandlers;
 
 export default class RegistrationPage extends Block<Props> {
     constructor(props: Props) {
@@ -65,25 +65,22 @@ export default class RegistrationPage extends Block<Props> {
             this.refs.emailInputRef,
             this.refs.phoneInputRef,
             this.refs.passwordInputRef,
-		];
-		let isFormValid: boolean = true;
+        ];
+        let isFormValid: boolean = true;
         const formValues: RegistrationData = getFormValues(inputsRefs);
 
         inputsRefs.forEach((inputRef: ValidateInput) => {
-			const isValid = this._validateRefs(inputRef);
-			if (!isValid) {
+            const isValid = this._validateRefs(inputRef);
+            if (!isValid) {
                 isFormValid = false;
             }
             this._displayError(isValid, inputRef);
         });
 
-        console.log(formValues); // вывод в консоль по ТЗ, а вот комментарий запрещен ¯\_(ツ)_/¯
-
-		if (isFormValid) {
+        if (isFormValid) {
             this.props.doRegistrtation(formValues);
         }
     }
-
 
     private _validateRefs(inputRef: ValidateInput) {
         return inputValidate(inputRef.refs.inputInnerRef.getProps());
@@ -97,8 +94,7 @@ export default class RegistrationPage extends Block<Props> {
         }
     }
 
-	render() {
-		
+    render() {
         return `
 		<main class="auth-content layout-container">
 			<div class="auth-content__form form-wrapper auth-content__form--main-bg">
@@ -221,7 +217,7 @@ export default class RegistrationPage extends Block<Props> {
 							Есть аккаунт?
 						</p>
 						{{{Link
-							href="#"
+							href="/"
 							label="Войти"
 							className="link link--standart"
 						}}}

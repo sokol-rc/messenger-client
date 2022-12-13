@@ -17,6 +17,7 @@ import PersonName from './components/person/person-name';
 import MessagePreview from './components/message/message-preview';
 import SidebarButton from './components/controls/sidebar-button/sidebar-button';
 import Sidebar from './components/sidebar';
+import SideBarContainer from './components/sidebar/sidebarContainer';
 import ModalConfirm from './components/modals/modal-confirm';
 import Dialog from './components/dialog';
 import DialogContainer from './components/dialog/dialogContainer';
@@ -27,6 +28,7 @@ import Message from './components/message/message';
 import Loader from './components/loader';
 import NavSidebar from './components/navSidebar';
 import NavSidebarContainer from './components/navSidebar/navSidebarContainer';
+import DivLikeInput from './components/divlikeinput';
 
 import './styles/common/default.css';
 import './styles/common/common.css';
@@ -34,77 +36,54 @@ import { authReducer } from './reducers/authReducer';
 
 require('babel-core/register');
 
-registerComponent(Button);
-registerComponent(Input);
-registerComponent(InputInner);
-registerComponent(InputError);
-registerComponent(Error);
-registerComponent(Avatar);
-registerComponent(ChatList);
-registerComponent(ChatListContainer);
-registerComponent(ChatItem);
-registerComponent(PersonName);
-registerComponent(Dialog);
-registerComponent(DialogContainer);
-registerComponent(MessagePreview);
-registerComponent(SidebarButton);
-registerComponent(Sidebar);
-registerComponent(ModalConfirm);
-registerComponent(Form);
-registerComponent(Link);
-registerComponent(DayContainer);
-registerComponent(Message);
-registerComponent(Loader);
-registerComponent(NavSidebar);
-registerComponent(NavSidebarContainer);
+const Components: Array<BlockConstructable> = [
+    Button,
+    DivLikeInput,
+    Input,
+    InputInner,
+    InputError,
+    Error,
+    Avatar,
+    ChatList,
+    ChatListContainer,
+    ChatItem,
+    PersonName,
+    Dialog,
+    DialogContainer,
+    MessagePreview,
+    SidebarButton,
+    Sidebar,
+    SideBarContainer,
+    ModalConfirm,
+    Form,
+    Link,
+    DayContainer,
+    Message,
+    Loader,
+    NavSidebar,
+    NavSidebarContainer,
+];
 
+Components.forEach((component) => {
+    registerComponent(component);
+});
 
-
-
-
+const store: Store = new Store(initialStore, authReducer);
+export type RootStateType = ReturnType<typeof store.getState>;
 
 document.addEventListener('DOMContentLoaded', () => {
-	const store = new Store<any>(initialStore, authReducer);
-	const router = new Router('.app');
-	
-	
-	window.store = store;
-	window.router = router;
-	
-		store.on('changed', (prevState, nextState) => {
-			  console.log(
-				'%cstore updated',
-				'background: #222; color: #7B68EE',
-				nextState,
-			  );
-		});
+    const router = new Router('.app');
 
-	// store.dispatch(initApp);
-	initRouter(router, store);
+    window.store = store;
+    window.router = router;
+    initRouter(router);
+    if (process.env.NODE_ENV === 'development') {
+        store.on('changed', (nextState) => {
+            console.log(
+                '%cstore updated',
+                'background: #222; color: #7B68EE',
+                nextState
+            );
+        });
+    }
 });
-// document.addEventListener('DOMContentLoaded', routing);
-
-// const links: { [x: string]: any } = {
-//     '/login': LoginPage,
-//     '/registration': RegistrationPage,
-//     '/': ChatPage,
-//     '/profile': ProfilePage,
-//     '/404': ErrorPage,
-// };
-// const routing = (route: string | Event) => {
-//     let href: string = '';
-//     if (typeof route === 'string') {
-//         href = route;
-//     } else {
-//         href = document.location.pathname;
-//     }
-//     if (href in links) {
-//         renderDOM(new links[href]());
-//     } else if (href === '/500') {
-//         renderDOM(new links['/404']({ errorNumber: 500 }));
-//     } else {
-//         renderDOM(new links['/404']({ errorNumber: 404 }));
-//     }
-// };
-
-// (window as any).routing = routing;

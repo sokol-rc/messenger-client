@@ -1,10 +1,8 @@
-import { debug } from 'console';
 import Block from 'core/Block';
-import { login, logout } from 'services/auth';
-import AuthApi from 'utils/api/auth-api';
 import getFormValues from 'utils/formTools';
 import { inputValidate } from 'utils/validate/validate';
 import Patterns from 'utils/validate/validate-pattenrs';
+import { ValidationHandlers } from 'utils/validate/validateTypes';
 
 import './login.css';
 
@@ -15,17 +13,14 @@ type LoginData = {
 
 type Props = {
     onSubmit: (event: SubmitEvent) => void;
-    validateOnBlur: (input: ValidateInput) => void;
-    validateOnFocus: (input: ValidateInput) => void;
     loginPattern: RegExp;
     passwordPattern: RegExp;
-    store: any;
-    user: any;
     loginFormError: string;
     isLoading: () => boolean;
     onLogin: (loginData: LoginData) => void;
+    doLogin: (loginData: LoginData) => void;
     onLogout: () => void;
-};
+} & ValidationHandlers;
 
 export default class LoginPage extends Block<Props> {
     constructor(props: Props) {
@@ -37,9 +32,7 @@ export default class LoginPage extends Block<Props> {
             loginPattern: this.patterns.loginPattern,
             passwordPattern: this.patterns.passwordPattern,
             loginFormError: props.loginFormError,
-            enableLoader: this.enableLoader.bind(this),
             onLogin: this.onLogin.bind(this),
-            onLogout: this.onLogout.bind(this),
         });
     }
 
@@ -61,18 +54,6 @@ export default class LoginPage extends Block<Props> {
         this.props.doLogin(loginData);
     }
 
-    enableLoader() {
-        this.props.setloginFormError('asdasd');
-    }
-
-    disableLoader() {
-        this.props.disableLoader();
-    }
-
-    onLogout() {
-        this.props.doLogout();
-    }
-
     onSubmit(event: SubmitEvent): void {
         event.preventDefault();
         const inputsRefs: ValidateInput[] = [
@@ -81,7 +62,7 @@ export default class LoginPage extends Block<Props> {
         ];
         let isFormValid: boolean = true;
 
-        const formValues = getFormValues(inputsRefs);
+        const formValues: LoginData = getFormValues(inputsRefs);
 
         inputsRefs.forEach((inputRef: ValidateInput) => {
             const isValid = this._validateRefs(inputRef);
@@ -109,12 +90,8 @@ export default class LoginPage extends Block<Props> {
     }
 
     render() {
-
         return `
 <main class="auth-content layout-container">
-{{{Button label="Logout" onClick=onLogout}}}
-{{{Button label="enable loader" onClick=enableLoader}}}
-{{{Button label="disable loader" onClick=disableLoader}}}
 	<div class="auth-content__form form-wrapper auth-content__form--main-bg">
 		<div class="form-header auth-content__header">
 			<h1 class="form-header__title">Вход</h1>
@@ -186,7 +163,7 @@ export default class LoginPage extends Block<Props> {
 					Нет аккаунта?
 				</p>
 				{{{Link
-					href="#"
+					href="/sign-up"
 					label="Зарегистрироваться"
 					className="link link--standart"
 				}}}

@@ -1,27 +1,32 @@
-import { Console } from 'console';
 import Block from 'core/Block';
-import { logout } from 'services/auth';
+import { UserProfileType } from 'reducers/thunkTypes';
 import getFormValues, { getAvatarFormValue } from 'utils/formTools';
 import { inputValidate, repeatPasswordValidate } from 'utils/validate/validate';
 import Patterns from 'utils/validate/validate-pattenrs';
+import { ValidationHandlers } from 'utils/validate/validateTypes';
 
 import './profile.css';
 
+export type FormValuesFormData<FormValues> = FormValues & { avatar?: FormData };
+
 type Props = {
-	[x: string]: any;
     user: Record<string, string>;
     onSubmit: (event: SubmitEvent) => void;
-    validateOnBlur: (input: ValidateInput) => void;
-    validateOnFocus: (input: ValidateInput) => void;
+    getUserInfo: () => void;
+    goBack: () => void;
+    saveUserInfo: (data: {
+        data: UserProfileType;
+        avatar: FormData | null;
+    }) => void;
     personNamePattern: RegExp;
     loginPattern: RegExp;
     emailPattern: RegExp;
     phonePattern: RegExp;
     passwordPattern: RegExp;
-};
+} & ValidationHandlers;
 
 export default class ProfilePage extends Block<Props> {
-    constructor(props) {
+    constructor(props: Props) {
         super(props);
         this.setProps({
             onSubmit: this.onSubmit.bind(this),
@@ -33,16 +38,21 @@ export default class ProfilePage extends Block<Props> {
             phonePattern: this.patterns.phonePattern,
             passwordPattern: this.patterns.passwordPattern,
             user: this.props.user,
+            goBack: this.goBack.bind(this),
         });
     }
 
     protected patterns = Patterns;
 
-	componentDidMount(): void {
-		if (this.props.user !== null) { 
-			this.props.getUserInfo();
-		}
-	}
+    componentDidMount(): void {
+        if (this.props.user !== null) {
+            this.props.getUserInfo();
+        }
+    }
+
+    goBack() {
+        window.router.back();
+    }
 
     validateOnFocus(inputRef: ValidateInput): void {
         let isValid: boolean = true;
@@ -80,20 +90,25 @@ export default class ProfilePage extends Block<Props> {
 
     onSubmit(event: SubmitEvent): void {
         event.preventDefault();
+        let isValidateHasErrors = false;
 
         const inputsRefs: ValidateInput[] = [
             this.refs.firstNameInputRef,
             this.refs.secondNameInputRef,
             this.refs.loginInputRef,
+            this.refs.displayNameInputRef,
             this.refs.emailInputRef,
             this.refs.phoneInputRef,
             this.refs.oldPasswordInputRef,
             this.refs.newPasswordInputRef,
         ];
-        const formValues = getFormValues(inputsRefs);
+        const formValues = <UserProfileType>getFormValues(inputsRefs);
 
         inputsRefs.forEach((inputRef: ValidateInput) => {
             const isValid = this._validateRefs(inputRef);
+            if (!isValid) {
+                isValidateHasErrors = true;
+            }
             this._displayError(isValid, inputRef);
         });
 
@@ -104,13 +119,10 @@ export default class ProfilePage extends Block<Props> {
 
         this._displayError(matchPassword, this.refs.newPasswordInputRef);
 
-        console.log(formValues); // вывод в консоль по ТЗ, а вот комментарий запрещен ¯\_(ツ)_/¯
-
         const avatar = getAvatarFormValue('.avatar-input__input');
-        if (avatar) {
-            formValues.avatar = avatar;
+        if (!isValidateHasErrors) {
+            this.props.saveUserInfo({ data: formValues, avatar });
         }
-        this.props.saveUserInfo(formValues);
     }
 
     private _validateRefs(inputRef: ValidateInput) {
@@ -125,8 +137,7 @@ export default class ProfilePage extends Block<Props> {
         }
     }
 
-	render() {
-		
+    render() {
         return `
 		<main class="profile-page layout-container">
 		<div class="profile-page__inner">
@@ -298,6 +309,7 @@ export default class ProfilePage extends Block<Props> {
 		</div>
 			{{/Form}}
 		</div>
+        {{{Button label="Вернуться" onClick=goBack}}}
 	</main>
 `;
     }

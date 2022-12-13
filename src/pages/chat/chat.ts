@@ -1,15 +1,17 @@
 import Block from 'core/Block';
+import { UserType } from 'utils/api/apiTypes';
 import isEmpty from 'utils/helpers/isEmpty';
 import './chat.css';
 
 type Props = {
-    isVisible: any;
-    user: any;
+    isVisible: boolean;
+    user: UserType | null;
     toogleSidebar: () => void;
     getUserInfo: () => void;
     toogleModal: () => void;
     onConfirm: () => void;
     onDecline: () => void;
+    closeAllSockets: () => void;
 };
 
 export default class ChatPage extends Block<Props> {
@@ -17,31 +19,19 @@ export default class ChatPage extends Block<Props> {
         super(props);
         this.setProps({
             toogleSidebar: this.toogleSidebar.bind(this),
-            toogleModal: this.toogleModal.bind(this),
-            onConfirm: this.onConfirm.bind(this),
-            onDecline: this.onDecline.bind(this),
             isVisible: true,
         });
-	}
-
-	componentDidMount(): void {
-		if (isEmpty(this.props.user)) { 
-			this.props.getUserInfo();
-		}
-	}
-
-    toogleModal() {
-        this.refs.ModalConfirmRef.setProps({
-            isVisible: !(this.refs.ModalConfirmRef.getProps() as any).isVisible,
-        });
     }
 
-    onConfirm() {
-        this.toogleModal();
+    componentWillUnmount(): void {
+
+        this.props.closeAllSockets();
     }
 
-    onDecline() {
-        this.toogleModal();
+    componentDidMount(): void {
+        if (isEmpty(this.props.user)) {
+            this.props.getUserInfo();
+        }
     }
 
     toogleSidebar() {
@@ -50,7 +40,7 @@ export default class ChatPage extends Block<Props> {
         });
     }
 
-	render() {
+    render() {
         return `
 			<div>
 				<main class="chat-page full-page">
@@ -66,21 +56,13 @@ export default class ChatPage extends Block<Props> {
 						}}}
 					</section>
 					<div class="chat-page__right-sidebar">
-						{{{Sidebar 
+						{{{SideBarContainer 
 							toogleModal=toogleModal
 							ref="SidebarRef"
 						}}}
 					</div>
 				</main>
-				{{{ModalConfirm
-					label="Удалить чат?"
-					description="А вы уверены?"
-					onConfirm=onConfirm
-					onDecline=onDecline
-					ref="ModalConfirmRef"
-				}}}
 			</div>
 `;
     }
 }
-

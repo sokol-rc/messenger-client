@@ -1,9 +1,22 @@
-import { checkAuth } from 'services/auth';
+import { Component } from 'core/Block';
+import { isAuthorized } from 'services/auth';
+import { antiDOS } from 'utils/helpers/defenders';
 import Route from './route';
 
 export default class Router {
-    constructor(rootQuery) {
+    private static __instance: Router;
+
+    private routes!: Array<{ route: Route; flags: { [x: string]: boolean } }>;
+
+    private history!: History;
+
+    private _currentRoute!: Route | null;
+
+    private _rootQuery!: string;
+
+    constructor(rootQuery: string) {
         if (Router.__instance) {
+            // eslint-disable-next-line no-constructor-return
             return Router.__instance;
         }
 
@@ -15,7 +28,12 @@ export default class Router {
         Router.__instance = this;
     }
 
-    use(pathname, block, flags, props = {}) {
+    use(
+        pathname: string,
+        block: Component,
+        flags: { [x: string]: boolean },
+        props = {}
+    ) {
         const route = new Route(pathname, block, {
             ...props,
             rootQuery: this._rootQuery,
@@ -26,31 +44,45 @@ export default class Router {
     }
 
     start() {
-        window.onpopstate = (event) => {
-            this._onRoute(event.currentTarget.location.pathname);
+        window.onpopstate = () => {
+            this._onRoute(window.location.pathname);
         };
 
         this._onRoute(window.location.pathname);
     }
 
-    _onRoute(pathname) {
+    async _onRoute(pathname: string) {
+        if (process.env.NODE_ENV === 'production') {
+            if (!antiDOS()) {
+                return;
+            }
+        }
+
         const routeWithFlags = this.getRoute(pathname);
 
         if (typeof routeWithFlags === 'undefined') {
-            // this.history.pushState({}, '', pathname);
             const errorPageRoute = this.getRoute('/404');
-            // this.go('/404');
-            errorPageRoute.route.render();
+
+            if (typeof errorPageRoute !== 'undefined') {
+                errorPageRoute.route.render();
+            }
             return;
         }
         const { route, flags } = routeWithFlags;
-
-        if (flags.shouldAuthorized && checkAuth()) {
-            this.go('/');
-            // const loginPageRoute = this.getRoute('/');
-
-            // loginPageRoute.route.render();
-            return;
+        if (process.env.NODE_ENV === 'production') {
+            const isAuth = await isAuthorized();
+            if (flags.shouldAuthorized && !isAuth) {
+                this.go('/');
+                return;
+            }
+            if (flags.shouldNotAuthorized && isAuth) {
+                if (this._currentRoute) {
+                    this._currentRoute.render();
+                } else {
+                    this.go('/messenger');
+                }
+                return;
+            }
         }
 
         if (this._currentRoute) {
@@ -58,11 +90,11 @@ export default class Router {
         }
 
         this._currentRoute = route;
+        this.history.pushState({}, '', pathname);
         route.render();
     }
 
-    go(pathname) {
-        this.history.pushState({}, '', pathname);
+    go(pathname: string) {
         this._onRoute(pathname);
     }
 
@@ -74,33 +106,7 @@ export default class Router {
         this.history.forward();
     }
 
-    getRoute(pathname) {
+    getRoute(pathname: string) {
         return this.routes.find((route) => route.route.match(pathname));
     }
 }
-
-//   // Необходимо оставить в силу особенностей тренажёра
-//   history.pushState({}, '', '/');
-
-//   const router = new Router(".app");
-
-//   // Можно обновиться на /user и получить сразу пользователя
-//   router
-// 	.use("/", Chats)
-// 	.use("/users", Users)
-// 	.start();
-
-//   // Через секунду контент изменится сам, достаточно дёрнуть переход
-//   setTimeout(() => {
-// 	router.go("/users");
-//   }, 1000);
-
-//   // А можно и назад
-//   setTimeout(() => {
-// 	router.back();
-//   }, 3000);
-
-//   // И снова вперёд
-//   setTimeout(() => {
-// 	router.forward();
-//   }, 5000);

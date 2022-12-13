@@ -1,13 +1,18 @@
-import connect from "core/connectHoc";
-import { getChatsList } from "reducers/authReducer";
-import ChatList from "./chat-list";
+import { Component } from 'core/Block';
+import connect from 'core/connectHoc';
+import { actions, createChat, getChatsList } from 'reducers/authReducer';
+import ChatList from './chat-list';
 
 const mstp = (state: Indexed<any>): Indexed => ({
     isLoading: state.isLoading,
-	store: window.store,
-	chatsList: window.store.getState().chats.chatsList
+    chatsList: state.chats.chatsList,
+    openedDialogId: state.chats.openedDialogId,
 });
 
-const ChatListContainer = connect(mstp, {getChatsList });
+const ChatListContainer = connect(mstp, {
+    getChatsList,
+    openDialog: actions.openDialog,
+    createChat,
+});
 
-export default ChatListContainer(ChatList);
+export default ChatListContainer(ChatList as Component);
