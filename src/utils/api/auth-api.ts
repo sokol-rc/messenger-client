@@ -6,6 +6,7 @@ import {
 } from './apiTypes';
 
 export const BASE_URL = 'https://ya-praktikum.tech/api/v2/';
+export const BASE_URL1 = '123123123';
 
 type AuthApiType = {
     apiUrl: string;
