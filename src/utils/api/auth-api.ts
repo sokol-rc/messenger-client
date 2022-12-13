@@ -9,6 +9,7 @@ export const BASE_URL = 'https://ya-praktikum.tech/api/v2/';
 export const BASE_URL1 = '123123123';
 export const BASE_URL12 = '546464564';
 export const BASE_URL122 = '5464645123123';
+export const BASE_URL1221231 = '546464512321312312123';
 
 type AuthApiType = {
     apiUrl: string;
